@@ -39,11 +39,45 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [ "$REDIS_BIN" = "redis-server" ] && ! command -v redis-server &> /dev/null; then
-    if [ -x "$BASE_DIR/bin/redis-server" ]; then
+    if [ -x "$BASE_DIR/bin/redis-server" ] && "$BASE_DIR/bin/redis-server" --version &> /dev/null; then
         REDIS_BIN="$BASE_DIR/bin/redis-server"
-    elif [ -x "./bin/redis-server" ]; then
+    elif [ -x "./bin/redis-server" ] && "./bin/redis-server" --version &> /dev/null; then
         REDIS_BIN="./bin/redis-server"
     fi
+fi
+
+if ! command -v "$REDIS_BIN" &> /dev/null && [ ! -x "$REDIS_BIN" ]; then
+    echo "    redis-server not found or not executable. Downloading and compiling Redis from source..."
+    mkdir -p "$BASE_DIR/src"
+    cd "$BASE_DIR/src"
+    if [ ! -f "redis-stable.tar.gz" ]; then
+        wget https://download.redis.io/redis-stable.tar.gz
+    fi
+    if [ ! -d "redis-stable" ]; then
+        tar -xzf redis-stable.tar.gz
+        cd redis-stable
+        make BUILD_TLS=no > ../make-redis.log 2>&1
+        cd ..
+    fi
+    REDIS_BIN="$BASE_DIR/src/redis-stable/src/redis-server"
+    echo "    Successfully built Redis at $REDIS_BIN"
+    cd "$BASE_DIR"
+elif ! "$REDIS_BIN" --version &> /dev/null; then
+    echo "    $REDIS_BIN is corrupted or built for a different architecture. Downloading and compiling Redis from source..."
+    mkdir -p "$BASE_DIR/src"
+    cd "$BASE_DIR/src"
+    if [ ! -f "redis-stable.tar.gz" ]; then
+        wget https://download.redis.io/redis-stable.tar.gz
+    fi
+    if [ ! -d "redis-stable" ]; then
+        tar -xzf redis-stable.tar.gz
+        cd redis-stable
+        make BUILD_TLS=no > ../make-redis.log 2>&1
+        cd ..
+    fi
+    REDIS_BIN="$BASE_DIR/src/redis-stable/src/redis-server"
+    echo "    Successfully built Redis at $REDIS_BIN"
+    cd "$BASE_DIR"
 fi
 
 echo "[+] Starting Native SightHouse Deployment"
