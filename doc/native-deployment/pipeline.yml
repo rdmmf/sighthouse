@@ -1,0 +1,51 @@
+name: SightHouse Native Deployment
+description: Compile glibc and UPX for BSim Analysis
+workers:
+
+  - name: fetch_glibc
+    package: Git Scrapper
+    target: compile_glibc
+    args:
+      repositories:
+        - name: glibc
+          url: git://sourceware.org/git/glibc.git
+          branches: [glibc-2.25.90]
+
+  - name: fetch_upx
+    package: Git Scrapper
+    target: compile_upx
+    args:
+      repositories:
+        - name: upx
+          url: https://github.com/upx/upx.git
+          branches: [v4.2.4]
+
+  - name: compile_glibc
+    package: Autotools Compiler
+    target: analyzer
+    foreach:
+      - compiler_variants:
+          x86_64-O1:
+            cc: gcc
+            cflags: -O1 -Wno-error=array-parameter
+            configure_extra_args: --disable-werror
+
+  - name: compile_upx
+    package: Cmake Compiler
+    target: analyzer
+    foreach:
+      - compiler_variants:
+          x86_64-O1:
+            cc: gcc
+            cflags: -O1
+            cxx: g++
+            cxxflags: -O1
+
+  - name: analyzer
+    package: Ghidra Analyzer
+    args:
+      bsim:
+        urls:
+          - postgresql://$(USER)@localhost:54322/bsim
+        min_instructions: 10
+        max_instructions: 0
