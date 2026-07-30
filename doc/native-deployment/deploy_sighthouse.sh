@@ -67,6 +67,8 @@ if [ -z "$PG_BIN" ]; then
     echo "    Check logs/make-postgres.log for details."
     exit 1
 fi
+PG_LIB="$(dirname "$PG_BIN")/lib"
+export LD_LIBRARY_PATH="$PG_LIB:$LD_LIBRARY_PATH"
 export PATH="$PG_BIN:$PATH"
 
 echo "[+] Initializing PostgreSQL..."
