@@ -7,6 +7,7 @@ GHIDRA_DIR="/opt/ghidra/ghidra_12.0.4_PUBLIC"
 SIGHTHOUSE_SRC="$HOME/github/sighthouse"
 PG_PORT=54322
 REDIS_PORT=63799
+REDIS_BIN="redis-server"
 
 # Usage help
 usage() {
@@ -17,6 +18,7 @@ usage() {
     echo "  --sighthouse-src DIR   Path to SightHouse source repository (default: $HOME/github/sighthouse)"
     echo "  --pg-port PORT         PostgreSQL port (default: 54322)"
     echo "  --redis-port PORT      Redis port (default: 63799)"
+    echo "  --redis-bin PATH       Path to redis-server executable (default: searches PATH, then ./bin/redis-server)"
     echo "  -h, --help             Show this help message"
     exit 1
 }
@@ -29,11 +31,20 @@ while [[ "$#" -gt 0 ]]; do
         --sighthouse-src) SIGHTHOUSE_SRC="$2"; shift ;;
         --pg-port) PG_PORT="$2"; shift ;;
         --redis-port) REDIS_PORT="$2"; shift ;;
+        --redis-bin) REDIS_BIN="$2"; shift ;;
         -h|--help) usage ;;
         *) echo "Unknown parameter passed: $1"; usage ;;
     esac
     shift
 done
+
+if [ "$REDIS_BIN" = "redis-server" ] && ! command -v redis-server &> /dev/null; then
+    if [ -x "$BASE_DIR/bin/redis-server" ]; then
+        REDIS_BIN="$BASE_DIR/bin/redis-server"
+    elif [ -x "./bin/redis-server" ]; then
+        REDIS_BIN="./bin/redis-server"
+    fi
+fi
 
 echo "[+] Starting Native SightHouse Deployment"
 echo "    Base Directory: $BASE_DIR"
@@ -85,7 +96,7 @@ sleep 3
 createdb -h localhost -p "$PG_PORT" bsim || true
 
 echo "[+] Starting Redis on port $REDIS_PORT..."
-redis-server --port "$REDIS_PORT" --dir "$BASE_DIR/redis" --daemonize yes --logfile "$BASE_DIR/logs/redis.log" || true
+"$REDIS_BIN" --port "$REDIS_PORT" --dir "$BASE_DIR/redis" --daemonize yes --logfile "$BASE_DIR/logs/redis.log" || true
 
 echo "[+] Installing SightHouse packages..."
 if [ ! -d "$SIGHTHOUSE_SRC" ]; then
