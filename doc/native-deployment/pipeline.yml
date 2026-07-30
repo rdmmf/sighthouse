@@ -19,6 +19,7 @@ workers:
         - name: upx
           url: https://github.com/upx/upx.git
           branches: [v4.2.4]
+          submodule: true
 
   - name: compile_glibc
     package: Autotools Compiler
