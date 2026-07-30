@@ -52,14 +52,21 @@ if [ ! -d "$BSIM_SUPPORT" ]; then
     exit 1
 fi
 
-if [ ! -d "$GHIDRA_DIR/Ghidra/Features/BSim/build/os/linux_x86_64/postgresql" ]; then
+if [ ! -d "$GHIDRA_DIR/Ghidra/Features/BSim/build/os/linux_x86_64/postgresql" ] && [ ! -d "$GHIDRA_DIR/Ghidra/Features/BSim/build/os/linux64/postgresql" ]; then
+    echo "    Patching make-postgres.sh to disable readline requirement..."
+    sed -i 's/POSTGRES_CONFIG_OPTIONS="--disable-rpath --with-openssl"/POSTGRES_CONFIG_OPTIONS="--disable-rpath --with-openssl --without-readline"/' "$BSIM_SUPPORT/make-postgres.sh"
     echo "    Running make-postgres.sh (this may take a few minutes)..."
     bash "$BSIM_SUPPORT/make-postgres.sh" > logs/make-postgres.log 2>&1
 else
     echo "    PostgreSQL already built."
 fi
 
-PG_BIN="$GHIDRA_DIR/Ghidra/Features/BSim/build/os/linux_x86_64/postgresql/bin"
+PG_BIN=$(find "$GHIDRA_DIR/Ghidra/Features/BSim/build/os" -type d -path "*/postgresql/bin" | head -n 1)
+if [ -z "$PG_BIN" ]; then
+    echo "[-] Error: PostgreSQL binaries not found. make-postgres.sh likely failed silently."
+    echo "    Check logs/make-postgres.log for details."
+    exit 1
+fi
 export PATH="$PG_BIN:$PATH"
 
 echo "[+] Initializing PostgreSQL..."
