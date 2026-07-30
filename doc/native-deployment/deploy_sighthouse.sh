@@ -46,38 +46,36 @@ if [ "$REDIS_BIN" = "redis-server" ] && ! command -v redis-server &> /dev/null; 
     fi
 fi
 
+build_redis() {
+    echo "    Downloading and compiling Redis from source..."
+    mkdir -p "$BASE_DIR/src"
+    cd "$BASE_DIR/src"
+    if [ ! -f "redis-stable/src/redis-server" ]; then
+        if [ ! -f "redis-stable.tar.gz" ]; then
+            wget -q https://download.redis.io/redis-stable.tar.gz
+        fi
+        if [ ! -d "redis-stable" ]; then
+            tar -xzf redis-stable.tar.gz
+        fi
+        cd redis-stable
+        echo "    Running make (this takes about 1-2 minutes)..."
+        make BUILD_TLS=no MALLOC=libc > ../make-redis.log 2>&1 || {
+            echo "[-] Error: Redis compilation failed! Check $BASE_DIR/src/make-redis.log for details."
+            exit 1
+        }
+        cd ..
+    fi
+    REDIS_BIN="$BASE_DIR/src/redis-stable/src/redis-server"
+    echo "    Successfully built Redis at $REDIS_BIN"
+    cd "$BASE_DIR"
+}
+
 if ! command -v "$REDIS_BIN" &> /dev/null && [ ! -x "$REDIS_BIN" ]; then
-    echo "    redis-server not found or not executable. Downloading and compiling Redis from source..."
-    mkdir -p "$BASE_DIR/src"
-    cd "$BASE_DIR/src"
-    if [ ! -f "redis-stable.tar.gz" ]; then
-        wget https://download.redis.io/redis-stable.tar.gz
-    fi
-    if [ ! -d "redis-stable" ]; then
-        tar -xzf redis-stable.tar.gz
-        cd redis-stable
-        make BUILD_TLS=no > ../make-redis.log 2>&1
-        cd ..
-    fi
-    REDIS_BIN="$BASE_DIR/src/redis-stable/src/redis-server"
-    echo "    Successfully built Redis at $REDIS_BIN"
-    cd "$BASE_DIR"
+    echo "    redis-server not found or not executable."
+    build_redis
 elif ! "$REDIS_BIN" --version &> /dev/null; then
-    echo "    $REDIS_BIN is corrupted or built for a different architecture. Downloading and compiling Redis from source..."
-    mkdir -p "$BASE_DIR/src"
-    cd "$BASE_DIR/src"
-    if [ ! -f "redis-stable.tar.gz" ]; then
-        wget https://download.redis.io/redis-stable.tar.gz
-    fi
-    if [ ! -d "redis-stable" ]; then
-        tar -xzf redis-stable.tar.gz
-        cd redis-stable
-        make BUILD_TLS=no > ../make-redis.log 2>&1
-        cd ..
-    fi
-    REDIS_BIN="$BASE_DIR/src/redis-stable/src/redis-server"
-    echo "    Successfully built Redis at $REDIS_BIN"
-    cd "$BASE_DIR"
+    echo "    $REDIS_BIN is corrupted or built for a different architecture."
+    build_redis
 fi
 
 echo "[+] Starting Native SightHouse Deployment"
