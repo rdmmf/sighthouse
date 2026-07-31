@@ -161,6 +161,6 @@ else
 fi
 
 echo "[+] Starting Frontend Server..."
-nohup sighthouse frontend -d "postgresql://$USER@localhost:$PG_PORT/bsim" start > "$BASE_DIR/logs/frontend.log" 2>&1 &
+nohup sighthouse frontend -g "$GHIDRA_DIR" -d "postgresql://$USER@localhost:$PG_PORT/bsim" start > "$BASE_DIR/logs/frontend.log" 2>&1 &
 
 echo "[+] Deployment complete! All services are running in the background."
